@@ -2,8 +2,19 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>去见您的路 · 教师节快乐</title>
+<meta name="description" content="一封送给吴老师的教师节贺卡：从生活区十六号楼到二教南514，一条用雷达扫描与路线检索走过的送信路。">
+<meta name="theme-color" content="#F4EDDC">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F4EDDC'/%3E%3Ccircle cx='45' cy='19' r='11' fill='%23C53D2B'/%3E%3Cpath d='M4 50c10-9 18-9 28 0s18 9 28 0' stroke='%236B947C' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta property="og:title" content="去见您的路 · 教师节快乐">
+<meta property="og:description" content="从生活区十六号楼到二教南514，一条走过的路，一封拆开的信。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://0allright.github.io/the-road-to-you/">
+<meta property="og:image" content="https://0allright.github.io/the-road-to-you/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#E9DEC4}
@@ -50,10 +61,16 @@ body{font-family:'WK','Kaiti SC','KaiTi','STKaiti',serif;color:#3A352C;user-sele
 #log b{color:#B03A2E;font-weight:400}
 #again{display:block;margin:18px auto 4px;background:none;border:1px solid #B03A2E;color:#B03A2E;border-radius:20px;
  padding:7px 26px;font-family:inherit;font-size:13px;letter-spacing:.2em;cursor:pointer}
+#env{cursor:pointer}
+#env:focus-visible,#start:focus-visible,#again:focus-visible,#fold:focus-visible{outline:2px solid #B03A2E;outline-offset:4px}
+.pbtns{display:flex;gap:12px;justify-content:center;margin:18px 0 4px}
+#paper #fold{background:none;border:1px solid #B03A2E;color:#B03A2E;border-radius:20px;padding:7px 20px;font-family:inherit;font-size:13px;letter-spacing:.2em;cursor:pointer}
+#paper #again{margin:0}
 </style>
 </head>
 <body>
-<canvas id="cv"></canvas>
+<canvas id="cv" role="img" aria-label="动画：从杭电生活区十六号楼出发，经学源街到二教南514送一封教师节信的像素地图"></canvas>
+<noscript><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#F4EDDC;color:#3A352C;font-size:16px;z-index:99;text-align:center;padding:0 24px">这封信需要启用 JavaScript 才能展开。</div></noscript>
 <div id="hud"><div id="title">教师节<b>快乐</b></div><div id="status">为吴老师而作</div></div>
 <button id="start">出发</button>
 <div id="sub" class="fade">从生活区十六号楼 · 到 2教南514</div>
@@ -64,7 +81,7 @@ body{font-family:'WK','Kaiti SC','KaiTi','STKaiti',serif;color:#3A352C;user-sele
 /* ===== 基础 ===== */
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1;
-function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);buildStatic();}
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);layoutGrid();buildStatic();redrawPending=true;}
 addEventListener('resize',resize);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 /* 色板（B1 宣纸日间定稿迁移） */
@@ -74,7 +91,7 @@ const C={paper1:'#F4EDDC',paper2:'#E9DEC4',ink:'#3A352C',ink2:'#8a8272',deep:'#2
 /* ===== 栅格 v3（官方示意图拟合，布点见下）===== */
 const COLS=46,ROWS=55;
 /* ===== 栅格地图 v3（据杭电官方校园示意图重绘，卡通风白描） ===== */
-/* 生活区 rows 3-19（西侧场馆带+东侧宿舍区）·学林街 20-22·教学区 23-52 */
+/* 生活区 rows 3-19（西侧场馆带+东侧宿舍区）·学源街 20-22·教学区 23-52 */
 const T_URBAN=1,T_ROAD=2,T_BLD=3,T_WATER=4,T_XING=5,T_PLAZA=6,T_WALL=7,T_FIELD=8,T_PARK=9;
 const cellT=new Uint8Array(COLS*ROWS);
 const explored=new Float32Array(COLS*ROWS);
@@ -152,7 +169,7 @@ const START=[16,5];
 const LBL=[
  [14,4,'16号楼','l'],[11,4,'18号楼','l'],[18,4,'15号楼','l'],[26,4,'宿舍楼群','l'],
  [12,12,'第一餐厅','l'],[6,10,'体育场','c'],[6,5,'游泳馆','c'],
- [8,18,'南二门','l'],[23,21,'学林街','c'],[9,21,'信号灯','l'],
+ [8,18,'南二门','l'],[23,21,'学源街','c'],[9,21,'信号灯','l'],
  [4,24,'北二门','l'],[8,28,'体育馆','c'],[16,28,'信远楼 · 8教','l'],
  [24,25,'图书馆','c'],[31,26,'信达楼','l'],[37,26,'活动中心','l'],
  [16,33,'信诚楼 · 6教','l'],[31,33,'信博楼 · 7教','l'],
@@ -199,9 +216,9 @@ function buildStatic(){
  }
  /* 校训（山脚常驻） */
  g.fillStyle='rgba(248,242,226,.8)';
- g.font=`${Math.max(10,W*.028)}px WK, KaiTi, serif`;
+ const mfs=Math.max(10,W*.026);g.font=mfs+'px WK, KaiTi, serif';
  g.textAlign='center';g.textBaseline='middle';
- g.fillText('笃学力行 · 守正求新',W/2,H-13);
+ g.fillText('笃学力行 · 守正求新',W/2,H-Math.max(13,mfs*.8)-5);
 }
 /* ===== 栅格层（增量重绘） ===== */
 let gridCv=document.createElement('canvas'),gctx=gridCv.getContext('2d');
@@ -282,7 +299,8 @@ function drawLabels(){ // 标签随探索淡入
   a=a/n;if(a<.45)continue;
   const [px,py]=gpos(x,y);
   ctx.globalAlpha=Math.min(1,(a-.45)*4);
-  ctx.fillStyle=C.ink2;ctx.font=`${Math.max(8,cell*.95)}px WK, KaiTi, serif`;
+  if(cell<10.5&&SMALL_SKIP.has(txt))continue;
+  ctx.fillStyle=C.ink2;ctx.font=`${Math.max(9.5,cell*.95)}px WK, KaiTi, serif`;
   ctx.textAlign=anch==='c'?'center':'left';
   ctx.fillText(txt,anch==='c'?px:px+cell*.9,py-cell*1.2);
  }
@@ -358,9 +376,8 @@ function dijkstra(){
  if(DIST[cur]>=INF)return;
  while(cur!==-1){PATH.push(cur);if(cur===idx(GOAL[0],GOAL[1]))break;cur=PRE[cur];}
 }
-function drawWave(dt){ // 扩散波前：约3.5s 扩完
- const rate=order.length/3500;           // 格/毫秒
- const end=Math.min(order.length,orderIdx+rate*dt);
+function drawWave(t){ // 扩散波前：约3.5s 扩完
+ const end=Math.min(order.length,(t-goalT)*SPD_MUL*order.length/3500);
  for(;orderIdx<end;orderIdx++){
   const i=order[orderIdx],x=i%COLS,y=(i/COLS)|0;
   if(explored[i]<.4)continue;
@@ -402,9 +419,11 @@ const statusEl=document.getElementById('status'),startBtn=document.getElementByI
 const subEl=document.getElementById('sub'),hintEl=document.getElementById('hint');
 const wrapEl=document.getElementById('letterWrap'),envEl=document.createElement('div');
 envEl.id='env';envEl.innerHTML='<div class="flap"></div><div class="seal">祝</div><div class="tip">拆开这封信</div>';
+envEl.tabIndex=0;envEl.setAttribute('role','button');envEl.setAttribute('aria-label','拆开这封信');
+envEl.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();envEl.click();}});
 let phase='idle',t0=0,carProg=0,laserAng=0,lastT=0,exploredPct=0,frameN=0;
 let dotBorn=[],rippleT=-1,mailT=-1,lightT=-1,goalT=-1,arriveT=-1;
-let pauseProg=0;{let acc=0;for(let k=0;k<ROUTE.length;k++){if(ROUTE[k][0]===8&&ROUTE[k][1]===20){pauseProg=acc/routeLen();break;}acc+=Math.hypot(ROUTE[k+1][0]-ROUTE[k][0],ROUTE[k+1][1]-ROUTE[k][1]);}}
+let pauseProg=0,greenShown=false;{let acc=0;for(let k=0;k<ROUTE.length;k++){if(ROUTE[k][0]===8&&ROUTE[k][1]===20){pauseProg=acc/routeLen();break;}acc+=Math.hypot(ROUTE[k+1][0]-ROUTE[k][0],ROUTE[k+1][1]-ROUTE[k][1]);}}
 function setStatus(s){statusEl.innerHTML=s;}
 startBtn.onclick=()=>{
  if(phase!=='idle')return;
@@ -416,10 +435,11 @@ envEl.onclick=()=>{ // 拆信（模板重建，可无限重复）
  wrapEl.innerHTML='<div id="paper">'+PAPER_HTML+'</div>';
  const p=document.getElementById('paper');p.style.display='block';
  document.getElementById('again').onclick=softReset;
+ document.getElementById('fold').onclick=()=>{wrapEl.innerHTML='';wrapEl.appendChild(envEl);envEl.focus();};
 };
 function softReset(){ // 观后重看：状态全归位，不依赖 reload（微信 webview 可靠）
  phase='idle';carProg=0;laserAng=0;exploredPct=0;frameN=0;
- dotBorn=[];rippleT=-1;mailT=-1;lightT=-1;goalT=-1;arriveT=-1;
+ dotBorn=[];rippleT=-1;mailT=-1;lightT=-1;goalT=-1;arriveT=-1;greenShown=false;
  scShow=null;scFired=SCENES.map(()=>false);
  explored.fill(0);for(let i=0;i<COLS*ROWS;i++)dirty.add(i);
  orderIdx=0;PATH=[];
@@ -428,7 +448,7 @@ function softReset(){ // 观后重看：状态全归位，不依赖 reload（微
  subEl.classList.add('on');hintEl.classList.add('on');
  setStatus('为吴老师而作');
 }
-function finish(){ // 抵达：上楼 → 信封
+function finish(){doneAt=performance.now(); // 抵达：上楼 → 信封
  phase='done';setStatus('心意已送达 <em>✓</em>');
  setTimeout(()=>{wrapEl.classList.add('on');wrapEl.appendChild(envEl);},900);
 }
@@ -436,6 +456,7 @@ let last=0;
 function frame(t){
  requestAnimationFrame(frame);
  const dt=Math.min(50,t-last);last=t;
+ if(phase==='done'&&!REC_MODE&&t-doneAt>5000&&!redrawPending)return;redrawPending=false;
  ctx.clearRect(0,0,W,H);
  ctx.drawImage(bgCv,0,0,W,H);
  if(phase==='idle'){drawIdleDecor(t);return;}
@@ -448,7 +469,7 @@ function frame(t){
  if(phase==='act1')stepAct1(t,dt);
  else if(phase==='act2')stepAct2(t,dt);
  else if(phase==='act3')stepAct3(t,dt);
- else{ // done 静驻
+ else{
   drawPath(t);drawGoal(t);drawDots(t,dotBorn);
   if(REC_MODE&&typeof drawEnvCanvas==='function')drawEnvCanvas(t);
  }
@@ -459,8 +480,8 @@ function drawIdleDecor(t){ // 待机：山间薄雾呼吸
  ctx.fillStyle=g;ctx.fillRect(0,H*.75,W,H*.25);
 }
 function stepAct1(t,dt){
- const TOTAL=routeLen(),SPD=.0037; // 格/毫秒 → 全程约15秒
- carProg=Math.min(1,carProg+dt*SPD/TOTAL);
+ const TOTAL=routeLen(),SPD=.005*SPD_MUL;
+ carProg=Math.min(1,(t-t0)*SPD/TOTAL);
  const [x,y,h]=routePos(carProg);
  laserAng+=dt*.006;
  revealRay(x,y,laserAng,9.5);revealRay(x,y,laserAng+Math.PI*.62,7);
@@ -471,22 +492,21 @@ function stepAct1(t,dt){
   setStatus('雷达扫描中 · 探索度 <em>'+Math.round(exploredPct*100)+'%</em>');}
  if(carProg>=1&&rippleT<0){rippleT=t;setStatus('建图完成 <em>✓</em> · 图里藏了一句话');}
  if(rippleT>=0){ // 边缘补全涟漪
-  const p=Math.min(1,(t-rippleT)/2200);
+  const p=Math.min(1,(t-rippleT)/2200/SPD_MUL);
   for(let i=0;i<COLS*ROWS;i++)if(explored[i]<p){explored[i]=p;dirty.add(i);}
   if(!dotBorn.length){dotBorn=DOTS.map(()=>0);}
   for(let i=0;i<dotBorn.length;i++)if(DOTS[i]&&(explored[idx(DOTS[i][0]|0,DOTS[i][1]|0)]>.5)&&dotBorn[i]===0)dotBorn[i]=1;
   for(let i=0;i<dotBorn.length;i++)if(dotBorn[i]>0&&dotBorn[i]<300)dotBorn[i]+=dt;
   drawDots(t,dotBorn.map(v=>v===1?1:v));
-  if(++frameN%20===0)setStatus('地图补全 <em>'+Math.round(p*100)+'%</em>');
   if(p>=1){dotBorn=DOTS.map(()=>300);phase='act2';goalT=t;
    setStatus('goal: <em>2教南514</em> · 检索路线…');dijkstra();orderIdx=0;}
  }
 }
 function stepAct2(t,dt){
- drawWave(dt);drawPath(t);drawGoal(t);drawDots(t,dotBorn);
+ drawWave(t);drawPath(t);drawGoal(t);drawDots(t,dotBorn);
  if(orderIdx>=order.length){
   if(lightT===-1)lightT=t;
-  if(t-lightT>2400){phase='act3';mailT=t;carProg=0;lightT=-1;arriveT=-1;
+  if(t-lightT>2400/SPD_MUL){phase='act3';mailT=t;carProg=0;lightT=-1;arriveT=-1;greenShown=false;
    setStatus('路线确认 · <em>出发送信</em>');}
  }
 }
@@ -498,18 +518,17 @@ function drawLight(state){ // 信号灯：街北侧 (16,28)
  else{ctx.fillStyle='#4E9A5F';ctx.beginPath();ctx.arc(px,py-cell*1.3,cell*.3,0,7);ctx.fill();}
 }
 function stepAct3(t,dt){
- const TOTAL=routeLen(),SPD=.0055; // 全程约10秒（含等灯）
- if(carProg<pauseProg){
-  carProg=Math.min(pauseProg,carProg+dt*SPD/TOTAL);
- }else if(lightT<0){
-  lightT=t;setStatus('红灯 · <em>心意稍候</em>');
- }else if(t-lightT<1500){
-  // 等灯
+ const TOTAL=routeLen(),SPD=.0072*SPD_MUL; // 全程约11.8秒（含等灯）
+ const raw=(t-mailT)*SPD/TOTAL;
+ if(raw<pauseProg){
+  carProg=Math.min(pauseProg,raw);
  }else{
-  carProg=Math.min(1,carProg+dt*SPD/TOTAL);
-  if(carProg>pauseProg+.02)setStatus('绿灯 · 送出祝福');
+  if(lightT<0){lightT=t;setStatus('红灯 · <em>心意稍候</em>');}
+  const go=Math.max(0,t-lightT-1500/SPD_MUL);
+  carProg=Math.min(1,pauseProg+go*SPD/TOTAL);
+  if(!greenShown&&carProg>pauseProg+.02){greenShown=true;setStatus('绿灯 · 送出祝福');}
  }
- drawLight(lightT<0||t-lightT<1500?'red':'green');
+ drawLight(lightT<0||t-lightT<1500/SPD_MUL?'red':'green');
  drawPath(t);drawGoal(t);drawDots(t,dotBorn);drawScene(t); // 仅余画淡出，不再新触发
  if(carProg<1){
   const [x,y,h]=routePos(carProg);
@@ -524,37 +543,38 @@ function stepAct3(t,dt){
  }
 }
 /* ===== 信纸 ===== */
+const _NOW=new Date(),TD_TODAY=_NOW.getMonth()===8&&_NOW.getDate()===10;
+const DATE_TXT=_NOW.getFullYear()+' 年 '+(_NOW.getMonth()+1)+' 月 '+_NOW.getDate()+' 日';
 const PAPER_HTML=`
 <div class="to">吴老师：</div>
-<p>今天是您以老师身份迎来的第一个教师节，也是讲台岁月的第一页。</p>
+<p>${TD_TODAY?'今天是':'这是'}您以老师身份迎来的第一个教师节，也是讲台岁月的第一页。</p>
 <p>我们是两名 2027 届本校考生，还没坐进您的课堂，先以杭电学生的名义，递上这份小小的答卷。愿您写下的每一页都比前一页辽阔，多年后合上，满纸都是学生的名字。</p>
 <p>祝您第一个教师节快乐，新篇落笔，页页生辉！</p>
 <p class="ni">—— 郑煜腾 · 戴继豪</p>
-<p class="ni2">2026 年 9 月 10 日</p>
+<p class="ni2">${DATE_TXT}</p>
 <div class="stamp">祝</div>
 <div id="log"><b>[2026-09-10] 探索日志</b><br>
 + 路径总长 ≈ 1.4 km · 步行约 20 分钟<br>
-+ 穿生活区 · 过学林街 · 行经馆前路<br>
++ 穿生活区 · 过学源街 · 行经馆前路<br>
 + 路线确认 · 心意已送达</div>
-<button id="again">再看一次</button>`;
+<div class="pbtns"><button id="fold">收起信纸</button><button id="again">重走这条路</button></div>`;
 /* ===== 启动 ===== */
 if(!CanvasRenderingContext2D.prototype.roundRect){
  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
   this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);
   this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();return this;};
 }
-document.getElementById('paper').innerHTML=PAPER_HTML;
 function boot(){
- resize();layoutGrid();
+ resize();
  document.getElementById('paper').innerHTML=PAPER_HTML;
  subEl.classList.add('on');hintEl.classList.add('on');
  requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame);});
 }
-document.fonts.load('64px WK','教师节快乐').then(()=>{
- buildDots();boot();
-}).catch(()=>{buildDots();boot();});
+document.fonts.load('64px WK','教师节快乐').catch(()=>{}).finally(()=>{buildDots();boot();});
 /* ===== 录制支持：REC_MODE 由外部（CDP 录制脚本）置位 ===== */
-let REC_MODE=false,envShowT=0;
+let REC_MODE=false,envShowT=0,doneAt=0,redrawPending=false;
+const SPD_MUL=('matchMedia' in window)&&matchMedia('(prefers-reduced-motion: reduce)').matches?6:1;
+const SMALL_SKIP=new Set(['宿舍楼群','信智楼','行政楼','足球场','中轴绿道','活动中心','信达楼','游泳馆','体育场','第一餐厅','信远楼 · 8教']);
 function recFinish(){ // 录制模式替换 finish：不弹 DOM 信封，只记录时刻（canvas 信封入视频）
  envShowT=performance.now();
  phase='done';setStatus('心意已送达 <em>✓</em>');
@@ -650,5 +670,6 @@ function sceneCheck(t,carProg){
   if(carProg>=SCENES[i].at){scFired[i]=true;scShow={idx:i,t0:t};break;}
  }
 }</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
 </html>
