@@ -438,9 +438,9 @@ function drawLabels(){ // 标签随探索淡入
  }
  ctx.globalAlpha=1;
 }
-function drawCar(cx,cy,heading,mode){ // 简笔送信小车：长轴=行驶方向（窄端为头尾），两轮外露于车侧
+function drawCar(cx,cy,heading,mode,fade){ // 简笔送信小车：长轴=行驶方向（窄端为头尾），两轮外露于车侧
  const [px,py]=gpos(cx,cy);
- ctx.save();ctx.translate(px,py);ctx.rotate(heading);
+ ctx.save();if(fade!==undefined)ctx.globalAlpha=fade;ctx.translate(px,py);ctx.rotate(heading);
  const s=cell*1.6;
  ctx.fillStyle=C.deep;
  ctx.beginPath();ctx.roundRect(-s*.6,-s*.32,s*1.2,s*.64,s*.2);ctx.fill();   // 车身（长轴沿+x=行驶方向）
@@ -662,6 +662,8 @@ function stepAct1(t,dt){
  }
 }
 function stepAct2(t,dt){
+ const scanFade=Math.max(0,1-(t-goalT)/900); // 勘测车抵达后原地淡出，交棒送信车
+ if(scanFade>0){const [sx,sy,sh]=routePos(1);drawCar(sx,sy,sh,'scan',scanFade);}
  drawWave(t);drawPath(t);drawGoal(t);drawDots(t,dotBorn);
  if(orderIdx>=order.length){
   if(lightT===-1)lightT=t;
@@ -677,6 +679,18 @@ function drawLight(state){ // 信号灯：街北侧 (16,28)
  else{ctx.fillStyle='#4E9A5F';ctx.beginPath();ctx.arc(px,py-cell*1.3,cell*.3,0,7);ctx.fill();}
 }
 function stepAct3(t,dt){
+ if(t-mailT<800)setStatus('路线确认 · <em>返程取信</em>');
+ else if(t-mailT<1500)setStatus('路线确认 · <em>出发送信</em>');
+ if(t-mailT<900){ // 起点·取信微动画：朱砂信封自16号楼浮出
+  const [sx2,sy2]=gpos(START[0],START[1]);
+  const pop2=Math.min(1,(t-mailT)/900);
+  const r2=cell*(.5+pop2*.8);
+  ctx.save();ctx.globalAlpha=(1-pop2)*.95;
+  ctx.fillStyle=C.red;ctx.strokeStyle='#F6EFDC';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(sx2-r2*.55,sy2-r2*.38,r2*1.1,r2*.76,r2*.12);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx2-r2*.55,sy2-r2*.38);ctx.lineTo(sx2,sy2+r2*.06);ctx.lineTo(sx2+r2*.55,sy2-r2*.38);ctx.stroke();
+  ctx.restore();
+ }
  const TOTAL=routeLen(),SPD=.0072*SPD_MUL; // 全程约11.8秒（含等灯）
  const raw=(t-mailT)*SPD/TOTAL;
  if(raw<pauseProg){
