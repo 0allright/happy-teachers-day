@@ -84,6 +84,9 @@ const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);layoutGrid();buildStatic();redrawPending=true;}
 addEventListener('resize',resize);
+let REC_MODE=false,envShowT=0,doneAt=0,redrawPending=false;
+const SPD_MUL=('matchMedia' in window)&&matchMedia('(prefers-reduced-motion: reduce)').matches?6:1;
+const SMALL_SKIP=new Set(['18号楼','15号楼','14号楼','13号楼','32号楼','21/22号楼','12号楼','11号楼','10号楼','4号楼','3号楼','2号楼','27号楼','29/28号楼','五六餐厅','宿舍8','宿舍6/5','第三餐厅·美食城','行政楼','足球场','中轴绿道','活动中心','信达楼','游泳馆','体育场','第一餐厅','信远楼 · 8教','信智楼 · 4教','力行楼 · 9教','笃学楼 · 10教']);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 /* 色板（B1 宣纸日间定稿迁移） */
 const C={paper1:'#F4EDDC',paper2:'#E9DEC4',ink:'#3A352C',ink2:'#8a8272',deep:'#29241D',
@@ -187,11 +190,11 @@ const LBL=[
 /* 点阵字“教师节快乐”：中央绿带（小徽章式） */
 const DOTX0=12,DOTY0=38.6,DOTW=22,DOTH=2.2; // 点云题字：横排全句（中带横匾）
 let DOTS=[];
-function buildDots(){ // 点云题字：横排“祝吴老师教师节快乐！”逐像素采样
+function buildDots(){ // 点云题字：横排“祝吴老师教师节快乐！”逐像素采样（字体就绪后可重采样）
  const oc=document.createElement('canvas');oc.width=680;oc.height=80;
  const o=oc.getContext('2d');o.fillStyle='#000';o.font='60px WK, KaiTi, serif';o.textBaseline='top';
  o.fillText('祝吴老师教师节快乐！',6,8);
- const d=o.getImageData(0,0,680,80).data;const step=4;
+ const d=o.getImageData(0,0,680,80).data;const step=4;DOTS.length=0;
  for(let y=0;y<80;y+=step)for(let x=0;x<680;x+=step){
   if(d[(y*680+x)*4+3]>110)DOTS.push([DOTX0+x/680*DOTW,DOTY0+y/80*DOTH]);
  }
@@ -765,11 +768,13 @@ function boot(){
  subEl.classList.add('on');hintEl.classList.add('on');
  requestAnimationFrame(t=>{last=t;requestAnimationFrame(frame);});
 }
-document.fonts.load('64px WK','教师节快乐').catch(()=>{}).finally(()=>{buildDots();boot();});
+boot();
+const _fontReady=()=>{try{buildDots();buildStatic();}catch(e){}};
+if(document.fonts&&document.fonts.load){
+ document.fonts.load('64px WK','祝吴老师教师节快乐！').then(_fontReady).catch(_fontReady);
+}else{_fontReady();}
 /* ===== 录制支持：REC_MODE 由外部（CDP 录制脚本）置位 ===== */
-let REC_MODE=false,envShowT=0,doneAt=0,redrawPending=false;
-const SPD_MUL=('matchMedia' in window)&&matchMedia('(prefers-reduced-motion: reduce)').matches?6:1;
-const SMALL_SKIP=new Set(['18号楼','15号楼','14号楼','13号楼','32号楼','21/22号楼','12号楼','11号楼','10号楼','4号楼','3号楼','2号楼','27号楼','29/28号楼','五六餐厅','宿舍8','宿舍6/5','第三餐厅·美食城','行政楼','足球场','中轴绿道','活动中心','信达楼','游泳馆','体育场','第一餐厅','信远楼 · 8教','信智楼 · 4教','力行楼 · 9教','笃学楼 · 10教']);
+/* REC_MODE/SPD_MUL/SMALL_SKIP 声明已前移至 resize 定义前 */
 function recFinish(){ // 录制模式替换 finish：不弹 DOM 信封，只记录时刻（canvas 信封入视频）
  envShowT=performance.now();
  phase='done';setStatus('心意已送达 <em>✓</em>');
