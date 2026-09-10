@@ -75,7 +75,7 @@ body{font-family:'WK','Kaiti SC','KaiTi','STKaiti',serif;color:#3A352C;user-sele
 <div id="hud"><div id="title">教师节<b>快乐</b></div><div id="status">为吴老师而作</div></div>
 <button id="start">出发<b>!</b></button>
 <div id="sub" class="fade">从生活区十六号楼 · 到 2教南514</div>
-<div id="hint" class="fade">一条走过的路 · 约 40 秒</div>
+<div id="hint" class="fade">一条走过的路 · 约 25 秒</div>
 <div id="letterWrap"><div id="paper"></div></div>
 <script>
 'use strict';
@@ -473,22 +473,25 @@ function drawGoal(t){const [px,py]=gpos(GOAL[0],GOAL[1]);
  ctx.beginPath();ctx.arc(px,py,cell*(1.2+.5*p),0,7);ctx.stroke();
  ctx.fillStyle=C.red;ctx.font=`${Math.max(9,cell)}px WK, KaiTi, serif`;ctx.textAlign='center';ctx.textBaseline='middle';
  ctx.fillText('514',px,py);}
-function drawDots(t,born,fade){ // 点云题字（墨色，纸匾衬托；fade=整体浓度）
+function drawDots(t,born,fade,scale){ // 点云祝福字（墨色纸匾；fade=浓度 scale=整体缩放）
+ const sc=(scale===undefined)?1:scale;
+ const ctr=gpos(DOTX0+DOTW/2,DOTY0+DOTH/2);
+ const spt=(gx,gy)=>{const p=gpos(gx,gy);return [ctr[0]+(p[0]-ctr[0])*sc,ctr[1]+(p[1]-ctr[1])*sc];};
  let any=false;for(let i=0;i<born.length;i++)if(born[i]>0){any=true;break;}
  if(any){
-  const [ax,ay]=gpos(DOTX0-.9,DOTY0-.55),bx4=gpos(DOTX0+DOTW+.9,DOTY0+DOTH+.55);
+  const [ax,ay]=spt(DOTX0-.9,DOTY0-.55),[bx4,by4]=spt(DOTX0+DOTW+.9,DOTY0+DOTH+.55);
   ctx.save();ctx.globalAlpha=.9*(fade===undefined?1:fade);ctx.fillStyle='#F6EFDC';
   ctx.strokeStyle='rgba(58,53,44,.45)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.roundRect(ax,ay,bx4[0]-ax,bx4[1]-ay,5);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.roundRect(ax,ay,bx4-ax,by4-ay,5);ctx.fill();ctx.stroke();
   ctx.restore();
  }
  for(let i=0;i<DOTS.length;i++){
   const b=born[i];if(b<=0)continue;
-  const [px,py]=gpos(DOTS[i][0],DOTS[i][1]);
+  const [px0,py0]=spt(DOTS[i][0],DOTS[i][1]);
   const pop=Math.min(1,b/300)*(fade===undefined?1:fade);const r=cell*.2*pop*(0.85+.15*Math.sin(t*.003+i));
   if(r<=0)continue;
   ctx.fillStyle=`rgba(58,53,44,${.8*pop})`;
-  ctx.beginPath();ctx.arc(px,py,r,0,7);ctx.fill();
+  ctx.beginPath();ctx.arc(px0,py0,r,0,7);ctx.fill();
  }
 }
 function drawSlogan(t){ // 点云展开：行楷大字“祝吴老师教师节快乐！”
@@ -611,13 +614,13 @@ function softReset(){ // 观后重看：状态全归位，不依赖 reload（微
 }
 function finish(){doneAt=performance.now();dotBorn=DOTS.map(()=>0); // 抵达：上楼 → 信封
  phase='done';setStatus('心意已送达 <em>✓</em>');
- setTimeout(()=>{wrapEl.classList.add('on');wrapEl.appendChild(envEl);},4300);
+ setTimeout(()=>{wrapEl.classList.add('on');wrapEl.appendChild(envEl);},3900);
 }
 let last=0;
 function frame(t){
  requestAnimationFrame(frame);
  const dt=Math.min(50,t-last);last=t;
- if(phase==='done'&&!REC_MODE&&t-doneAt>8500&&!redrawPending)return;redrawPending=false;
+ if(phase==='done'&&!REC_MODE&&t-doneAt>7000&&!redrawPending)return;redrawPending=false;
  ctx.clearRect(0,0,W,H);
  ctx.drawImage(bgCv,0,0,W,H);
  if(phase==='idle'){drawIdleDecor(t);return;}
@@ -628,12 +631,14 @@ function frame(t){
  ctx.globalAlpha=1;
  drawLabels();
  if(phase==='act1')stepAct1(t,dt);
- else if(phase==='act2')stepAct2(t,dt);
- else if(phase==='act3')stepAct3(t,dt);
- else{ // done 静驻：点云由淡到浓浮现 → 展开行楷大字
-  for(let i=0;i<dotBorn.length;i++)if(dotBorn[i]>0&&dotBorn[i]<300)dotBorn[i]+=dt*(.55+(i%9)*.1);
-  const e2=t-doneAt-2000,fade=e2>0?Math.max(0,1-e2/1100):1;
-  drawPath(t);drawGoal(t);drawDots(t,dotBorn,fade);drawSlogan(t);
+ else{ // 送达：点云祝福字由小到大放大 → 淡出 → 衔接拆信
+  for(let i=0;i<dotBorn.length;i++)if(dotBorn[i]<300)dotBorn[i]+=dt*(.7+(i%9)*.12);
+  const e3=t-doneAt;
+  const kk=Math.min(1,e3/1300),scale=.35+.65*(1-Math.pow(1-kk,3));
+  const fade=e3>2600?Math.max(0,1-(e3-2600)/900):1;
+  const carFade=Math.max(0,1-e3/900);
+  if(carFade>0){const g2=routePos(1);drawCar(g2[0],g2[1],g2[2],'mail',carFade);}
+  drawPath(t);drawGoal(t);drawDots(t,dotBorn,fade,scale);
   if(REC_MODE&&typeof drawEnvCanvas==='function')drawEnvCanvas(t);
  }
 }
@@ -642,23 +647,40 @@ function drawIdleDecor(t){ // 待机：山间薄雾呼吸
  g.addColorStop(0,'rgba(244,237,220,0)');g.addColorStop(1,'rgba(74,117,96,.14)');
  ctx.fillStyle=g;ctx.fillRect(0,H*.75,W,H*.25);
 }
-function stepAct1(t,dt){
+function stepAct1(t,dt){ // 单趟式：这趟就是送信之旅（边扫描建图边行进，含等灯）
  const TOTAL=routeLen(),SPD=.005*SPD_MUL;
- carProg=Math.min(1,(t-t0)*SPD/TOTAL);
+ const raw=(t-t0)*SPD/TOTAL;
+ if(raw<pauseProg){
+  carProg=raw;
+  if(++frameN%20===0){exploredPct=countExplored();
+   setStatus('雷达扫描中 · 探索度 <em>'+Math.round(exploredPct*100)+'%</em>');}
+ }else{
+  if(lightT<0){lightT=t;setStatus('红灯 · <em>心意稍候</em>');}
+  carProg=Math.min(1,pauseProg+Math.max(0,t-lightT-1500/SPD_MUL)*SPD/TOTAL);
+  if(!greenShown&&carProg>pauseProg+.02){greenShown=true;setStatus('绿灯 · <em>送出祝福</em>');}
+ }
  const [x,y,h]=routePos(carProg);
  laserAng+=dt*.006;
  revealRay(x,y,laserAng,9.5);revealRay(x,y,laserAng+Math.PI*.62,7);
  revealNear(x,y,3.4,dt*.0011);
- drawLaser(x,y,laserAng);drawCar(x,y,h,'scan');
- sceneCheck(t,carProg);drawScene(t);   // 探索途中行经即展示沿途楼宇画
- if(++frameN%20===0){exploredPct=countExplored();
-  setStatus('雷达扫描中 · 探索度 <em>'+Math.round(exploredPct*100)+'%</em>');}
- if(carProg>=1&&rippleT<0){rippleT=t;setStatus('建图完成 <em>✓</em> · 图里藏了一句话');}
- if(rippleT>=0){ // 边缘补全涟漪
+ drawLaser(x,y,laserAng);drawCar(x,y,h,'mail');
+ drawLight(lightT>=0&&t-lightT<1500/SPD_MUL?'red':'green');
+ if(t-t0<900){ // 起点·取信微动画：朱砂信封自16号楼浮出装车
+  const s3=gpos(START[0],START[1]);
+  const pop3=Math.min(1,(t-t0)/900);
+  const r3=cell*(.5+pop3*.8);
+  ctx.save();ctx.globalAlpha=(1-pop3)*.95;
+  ctx.fillStyle=C.red;ctx.strokeStyle='#F6EFDC';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(s3[0]-r3*.55,s3[1]-r3*.38,r3*1.1,r3*.76,r3*.12);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s3[0]-r3*.55,s3[1]-r3*.38);ctx.lineTo(s3[0],s3[1]+r3*.06);ctx.lineTo(s3[0]+r3*.55,s3[1]-r3*.38);ctx.stroke();
+  ctx.restore();
+ }
+ sceneCheck(t,carProg);drawScene(t);   // 行经即展示沿途楼宇画
+ if(carProg>=1&&rippleT<0){rippleT=t;}
+ if(rippleT>=0){ // 建图补全涟漪
   const p=Math.min(1,(t-rippleT)/2200/SPD_MUL);
   for(let i=0;i<COLS*ROWS;i++)if(explored[i]<p){explored[i]=p;dirty.add(i);}
-  if(p>=1&&!mapSharp){mapSharp=true;for(let q2=0;q2<COLS*ROWS;q2++)dirty.add(q2);dotBorn=DOTS.map(()=>300);phase='act2';goalT=t;
-   setStatus('goal: <em>2教南514</em> · 检索路线…');dijkstra();orderIdx=0;}
+  if(p>=1&&!mapSharp){mapSharp=true;for(let q2=0;q2<COLS*ROWS;q2++)dirty.add(q2);dijkstra();orderIdx=0;finish();}
  }
 }
 function stepAct2(t,dt){
