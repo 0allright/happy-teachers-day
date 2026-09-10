@@ -1,5 +1,5 @@
 // 离线兜底：导航请求网络优先，失败回落缓存（首次打开后断网也能看）
-const CACHE = 'trty-v1';
+const CACHE = 'trty-v2';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
